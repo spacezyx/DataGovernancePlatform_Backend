@@ -2,6 +2,7 @@ package com.istlab.datagovernanceplatform.controller;
 
 import com.istlab.datagovernanceplatform.pojo.dto.DataSourceInfoDTO;
 import com.istlab.datagovernanceplatform.pojo.vo.DataSourceManageVO;
+import com.istlab.datagovernanceplatform.pojo.vo.DatasourceListVO;
 import com.istlab.datagovernanceplatform.service.DataSourceService;
 import com.istlab.datagovernanceplatform.utils.Result;
 import com.istlab.datagovernanceplatform.utils.ResultUtil;
@@ -44,12 +45,15 @@ public class DataSourceController {
        return dataSourceService.getDataSourceManagementList();
     }
 
-    @DeleteMapping(value = "/datasource/ /{id}")
+    @DeleteMapping(value = "/datasource/delete/{id}")
     public Result<String> delete(@PathVariable String id){
         return dataSourceService.deleteDataSourcePO(id);
     }
 
-
+    @GetMapping(value = "/datasource/getDatasourceList")
+    public List<DatasourceListVO> getDatasourceList(){
+        return dataSourceService.getDatasourceList();
+    }
 
 
 }

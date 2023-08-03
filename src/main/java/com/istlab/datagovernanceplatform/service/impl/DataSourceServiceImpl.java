@@ -3,6 +3,7 @@ package com.istlab.datagovernanceplatform.service.impl;
 import com.istlab.datagovernanceplatform.pojo.dto.DataSourceInfoDTO;
 import com.istlab.datagovernanceplatform.pojo.po.DataSourceInfoPO;
 import com.istlab.datagovernanceplatform.pojo.vo.DataSourceManageVO;
+import com.istlab.datagovernanceplatform.pojo.vo.DatasourceListVO;
 import com.istlab.datagovernanceplatform.repository.DataSourceInfoRepo;
 import com.istlab.datagovernanceplatform.service.DataSourceService;
 import com.istlab.datagovernanceplatform.utils.Result;
@@ -94,5 +95,20 @@ public class DataSourceServiceImpl implements DataSourceService {
         else {
             return ResultUtil.failure("不存在此数据源，删除失败", -1);
         }
+    }
+
+    @Override
+    public List<DatasourceListVO> getDatasourceList() {
+        List<DatasourceListVO> res = new ArrayList<>();
+        List<DataSourceInfoPO> pos = dataSourceInfoRepo.findAll();
+        for(DataSourceInfoPO tmp : pos) {
+            String address = tmp.getHost() + ":" + tmp.getPort() + "/" + tmp.getDatabase();
+            DatasourceListVO vo = new DatasourceListVO(tmp.getId(), tmp.getName(), tmp.getComment(),tmp.getHost(),
+                    tmp.getPort(), tmp.getUser(), tmp.getDatabase(),
+                    tmp.getDataType(), tmp.getDatabaseType(), address, tmp.getExtractFlag(), tmp.getLastExtractTime(),
+                    tmp.getFuseFlag(), tmp.getLastFuseTime());
+            res.add(vo);
+        }
+        return res;
     }
 }
