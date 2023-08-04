@@ -1,10 +1,12 @@
 package com.istlab.datagovernanceplatform.pojo.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -22,7 +24,11 @@ public class DatasourceListVO {
 
     String address;
     Boolean extractFlag;
-    Timestamp lastExtractTime;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    Date lastExtractTime;
+
     Boolean fuseFlag;
-    Timestamp lastFuseTime;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    Date lastFuseTime;
 }

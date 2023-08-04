@@ -1,5 +1,6 @@
 package com.istlab.datagovernanceplatform.pojo.po;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,6 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.sql.Timestamp;
+import java.util.Date;
 
 @Data
 @AllArgsConstructor
@@ -25,9 +27,13 @@ public class DataSourceInfoPO {
     String dataType;
     String databaseType;
     Boolean extractFlag;
-    Timestamp lastExtractTime;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    Date lastExtractTime;
+
     Boolean fuseFlag;
-    Timestamp lastFuseTime;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    Date lastFuseTime;
 
 //    public enum DataTypeEumn {
 //        STRUCTURED, SEMI_STRUCTURED, UNSTRUCTURED
@@ -49,9 +55,9 @@ public class DataSourceInfoPO {
         this.dataType = dataType;
         this.databaseType = databaseType;
         this.extractFlag = false;
-        this.lastExtractTime = null;
+        this.lastExtractTime = new Timestamp(System.currentTimeMillis());
         this.fuseFlag = false;
-        this.lastFuseTime = null;
+        this.lastFuseTime = new Timestamp(System.currentTimeMillis());
     }
 
 }
