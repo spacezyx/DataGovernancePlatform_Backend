@@ -145,8 +145,10 @@ public class DataSourceServiceImpl implements DataSourceService {
 
     // postgresql元数据抽取
     @Override
-    public Result<String> extractMetadata(String id) throws Exception {
+    public Result<String> extractMetadata(String id, String topicArea) throws Exception {
+        // 每次抽取都重新更新这个datasource的元数据信息
         DataSourceInfoPO dataSourceInfoPO = dataSourceInfoRepo.findById(id).orElseThrow(() -> new RuntimeException("DataSourceInfoPO不存在"));
+        tableMetadataRepo.deleteAllByDataSourceId(id);
 
         Connection connection =  postGreSQLConnection(dataSourceInfoPO.getHost(), dataSourceInfoPO.getPort(), dataSourceInfoPO.getDatabase(),
                 dataSourceInfoPO.getUser(), dataSourceInfoPO.getPassword());
@@ -155,6 +157,8 @@ public class DataSourceServiceImpl implements DataSourceService {
         for(String tableName : tableNames) {
             try {
                 TableMetadataPO tableMetadataPO = getTableMetadata(connection, tableName);
+                tableMetadataPO.setDataSourceId(id);
+                tableMetadataPO.setTopicArea(topicArea);
                 tableMetadataRepo.save(tableMetadataPO);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -167,6 +171,8 @@ public class DataSourceServiceImpl implements DataSourceService {
         //修改上次抽取时间和抽取Flag
         dataSourceInfoPO.setExtractFlag(true);
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        dataSourceInfoPO.setLastExtractTime(timestamp);
+        dataSourceInfoRepo.save(dataSourceInfoPO);
         return ResultUtil.success("数据源: " + dataSourceInfoPO.getName() + " 元数据抽取成功,成功导入" + tableNames.size() + "个表" );
     }
 
@@ -204,23 +210,13 @@ public class DataSourceServiceImpl implements DataSourceService {
         DatabaseMetaData metaData = connection.getMetaData();
         TableMetadataPO tableMetadata = new TableMetadataPO();
         tableMetadata.setTableName(tableName);
+        String tableComment = getTableComment(connection, tableName);
+        tableMetadata.setTableComment(tableComment);
 
         ResultSet columnsResult = metaData.getColumns(null, null, tableName, null);
         List<ColumnMetadata> columns = new ArrayList<>();
         while (columnsResult.next()) {
             ColumnMetadata column = new ColumnMetadata();
-//            private String columnName;
-//            private String dataType;
-//            private int length;
-//            private boolean isPrimaryKey;
-//            private boolean isForeignKey;
-//            private boolean isIndexed;
-//            private boolean isNotNull;
-//            private String defaultValue;
-//            private String checkConstraint;
-//            private String referencedTableName; // 外键关联的表名
-//            private String referencedColumnName; // 外键关联的列名
-            log.info(String.valueOf(columnsResult));
             column.setColumnName(columnsResult.getString("COLUMN_NAME"));
             column.setDataType(columnsResult.getString("TYPE_NAME"));
             column.setLength(columnsResult.getInt("COLUMN_SIZE"));
@@ -248,5 +244,18 @@ public class DataSourceServiceImpl implements DataSourceService {
         tableMetadata.setIndexes(indexes);
 
         return tableMetadata;
+    }
+
+    private static String getTableComment(Connection connection, String tableName) throws SQLException {
+        String tableComment = null;
+        String query = "SELECT description FROM pg_description WHERE objoid=(SELECT oid FROM pg_class WHERE relname=?)";
+        try (java.sql.PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, tableName);
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                tableComment = resultSet.getString("description");
+            }
+        }
+        return tableComment;
     }
 }

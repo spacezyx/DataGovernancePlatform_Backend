@@ -16,5 +16,5 @@ public interface DataSourceService {
     Result<String> deleteDataSourcePO(String id);
     List<DatasourceListVO> getDatasourceList();
     TableMetadataPO getTableMetadataById(String id);
-    Result<String> extractMetadata(String id) throws Exception;
+    Result<String> extractMetadata(String id, String topicArea) throws Exception;
 }
