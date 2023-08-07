@@ -17,9 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -148,18 +146,18 @@ public class DataSourceServiceImpl implements DataSourceService {
     public Result<String> extractMetadata(String id, String topicArea) throws Exception {
         // 每次抽取都重新更新这个datasource的元数据信息
         DataSourceInfoPO dataSourceInfoPO = dataSourceInfoRepo.findById(id).orElseThrow(() -> new RuntimeException("DataSourceInfoPO不存在"));
-        tableMetadataRepo.deleteAllByDataSourceId(id);
 
         Connection connection =  postGreSQLConnection(dataSourceInfoPO.getHost(), dataSourceInfoPO.getPort(), dataSourceInfoPO.getDatabase(),
                 dataSourceInfoPO.getUser(), dataSourceInfoPO.getPassword());
         List<String> tableNames = getTableNames(connection);
+        List<TableMetadataPO> tableMetadataPOS = new ArrayList<>();
 
         for(String tableName : tableNames) {
             try {
                 TableMetadataPO tableMetadataPO = getTableMetadata(connection, tableName);
                 tableMetadataPO.setDataSourceId(id);
                 tableMetadataPO.setTopicArea(topicArea);
-                tableMetadataRepo.save(tableMetadataPO);
+                tableMetadataPOS.add(tableMetadataPO);
             } catch (Exception e) {
                 e.printStackTrace();
                 connection.close();
@@ -172,7 +170,8 @@ public class DataSourceServiceImpl implements DataSourceService {
         dataSourceInfoPO.setExtractFlag(true);
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         dataSourceInfoPO.setLastExtractTime(timestamp);
-        dataSourceInfoRepo.save(dataSourceInfoPO);
+        tableMetadataRepo.deleteAllByDataSourceId(id);
+        tableMetadataRepo.saveAll(tableMetadataPOS);
         return ResultUtil.success("数据源: " + dataSourceInfoPO.getName() + " 元数据抽取成功,成功导入" + tableNames.size() + "个表" );
     }
 
@@ -214,33 +213,46 @@ public class DataSourceServiceImpl implements DataSourceService {
         tableMetadata.setTableComment(tableComment);
 
         ResultSet columnsResult = metaData.getColumns(null, null, tableName, null);
-        List<ColumnMetadata> columns = new ArrayList<>();
+        Map<String, ColumnMetadata> columnMetadataMap = new HashMap<>();
         while (columnsResult.next()) {
+            String colName = columnsResult.getString("COLUMN_NAME");
             ColumnMetadata column = new ColumnMetadata();
-            column.setColumnName(columnsResult.getString("COLUMN_NAME"));
+            column.setColumnName(colName);
             column.setDataType(columnsResult.getString("TYPE_NAME"));
             column.setLength(columnsResult.getInt("COLUMN_SIZE"));
-            columns.add(column);
+            column.setNullable(columnsResult.getBoolean("is_nullable"));
+            columnMetadataMap.put(colName, column);
         }
-        tableMetadata.setColumns(columns);
 
         ResultSet primaryKeysResult = metaData.getPrimaryKeys(null, null, tableName);
-        if (primaryKeysResult.next()) {
-            tableMetadata.setPrimaryKey(primaryKeysResult.getString("COLUMN_NAME"));
+        List<String> primaryKeys = new ArrayList<>();
+        while (primaryKeysResult.next()) {
+            String priKey = primaryKeysResult.getString("COLUMN_NAME");
+            primaryKeys.add(priKey);
+            columnMetadataMap.get(priKey).setPrimaryKey(true);
         }
 
+        tableMetadata.setPrimaryKey(primaryKeys);
         ResultSet foreignKeysResult = metaData.getImportedKeys(null, null, tableName);
         List<String> foreignKeys = new ArrayList<>();
         while (foreignKeysResult.next()) {
-            foreignKeys.add(foreignKeysResult.getString("FKCOLUMN_NAME"));
+            String colName = foreignKeysResult.getString("FKCOLUMN_NAME");
+            foreignKeys.add(colName);
+            columnMetadataMap.get(colName).setForeignKey(true);
+            columnMetadataMap.get(colName).setReferencedTableName(foreignKeysResult.getString("pktable_name"));
+            columnMetadataMap.get(colName).setReferencedColumnName(foreignKeysResult.getString("pkcolumn_name"));
         }
         tableMetadata.setForeignKeys(foreignKeys);
 
         ResultSet indexesResult = metaData.getIndexInfo(null, null, tableName, false, false);
         List<String> indexes = new ArrayList<>();
         while (indexesResult.next()) {
-            indexes.add(indexesResult.getString("COLUMN_NAME"));
+            String colName = indexesResult.getString("COLUMN_NAME");
+            indexes.add(colName);
+            columnMetadataMap.get(colName).setIndexed(true);
         }
+        List<ColumnMetadata> columns = new ArrayList<>(columnMetadataMap.values());
+        tableMetadata.setColumns(columns);
         tableMetadata.setIndexes(indexes);
 
         return tableMetadata;

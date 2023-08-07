@@ -27,7 +27,7 @@ public class TableMetadataPO {
     private String id;
     private String tableName;
     private List<ColumnMetadata> columns;
-    private String primaryKey;
+    private List<String> primaryKey;
     private List<String> foreignKeys;
     private List<String> indexes;
     private String tableComment;
