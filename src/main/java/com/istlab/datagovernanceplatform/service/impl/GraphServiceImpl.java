@@ -51,7 +51,7 @@ public class GraphServiceImpl implements GraphService {
             String tableId = tableMetadataPO.getId();
             tableNode.setId(tableId);
             tableNode.setText(tableMetadataPO.getTableName());
-            tableNode.setColor("B1BB96");
+            tableNode.setColor("#B1BB96");
             // 数据源节点和表节点的连线
             GraphLine tableLine = new GraphLine();
             tableLine.setText("包含数据表");
