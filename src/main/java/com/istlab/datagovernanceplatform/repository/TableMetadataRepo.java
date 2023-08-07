@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface TableMetadataRepo extends MongoRepository<TableMetadataPO, String> {
     void deleteAllByDataSourceId(String id);
+    List<TableMetadataPO> findAllByDataSourceId(String id);
+    TableMetadataPO findTableMetadataPOByTableName(String name);
 }

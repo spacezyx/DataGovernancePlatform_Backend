@@ -1,6 +1,7 @@
 package com.istlab.datagovernanceplatform.service.impl;
 
 import com.istlab.datagovernanceplatform.pojo.domain.ColumnMetadata;
+import com.istlab.datagovernanceplatform.pojo.domain.SelectList;
 import com.istlab.datagovernanceplatform.pojo.dto.DataSourceInfoDTO;
 import com.istlab.datagovernanceplatform.pojo.po.DataSourceInfoPO;
 import com.istlab.datagovernanceplatform.pojo.po.TableMetadataPO;
@@ -45,6 +46,17 @@ public class DataSourceServiceImpl implements DataSourceService {
             return null;
         }
         return null;
+    }
+
+    @Override
+    public List<SelectList> getSelectDatasourceList() {
+        List<SelectList> selectLists = new ArrayList<>();
+        List<DataSourceInfoPO> dataSourceInfoPOS = dataSourceInfoRepo.findAll();
+        for(DataSourceInfoPO dataSourceInfoPO : dataSourceInfoPOS) {
+            SelectList selectList = new SelectList(dataSourceInfoPO.getId(), dataSourceInfoPO.getName());
+            selectLists.add(selectList);
+        }
+        return selectLists;
     }
 
     // 验证是否存在postgresql数据库

@@ -1,12 +1,13 @@
 package com.istlab.datagovernanceplatform.controller;
 
+import com.istlab.datagovernanceplatform.pojo.domain.SelectList;
 import com.istlab.datagovernanceplatform.pojo.dto.DataSourceInfoDTO;
+import com.istlab.datagovernanceplatform.pojo.po.TableMetadataPO;
 import com.istlab.datagovernanceplatform.pojo.vo.DataSourceManageVO;
 import com.istlab.datagovernanceplatform.pojo.vo.DatasourceListVO;
 import com.istlab.datagovernanceplatform.service.DataSourceService;
 import com.istlab.datagovernanceplatform.utils.Result;
 import com.istlab.datagovernanceplatform.utils.ResultUtil;
-import org.bson.json.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,10 +56,22 @@ public class DataSourceController {
         return dataSourceService.getDatasourceList();
     }
 
+    @GetMapping(value = "/datasource/getSelectDatasourceList")
+    public List<SelectList> getSelectDatasourceList(){
+        return dataSourceService.getSelectDatasourceList();
+    }
+
     @PostMapping(value = "/datasource/extractMetadata/{id}/{topicArea}")
     public Result<String> extractMetadata(@PathVariable String id, @PathVariable String topicArea) throws Exception {
         return dataSourceService.extractMetadata(id, topicArea);
     }
+
+    @PostMapping(value = "/datasource/getMetadata/{id}")
+    public TableMetadataPO getMetadata(@PathVariable String id) throws Exception {
+        return dataSourceService.getTableMetadataById(id);
+    }
+
+
 
 
 }

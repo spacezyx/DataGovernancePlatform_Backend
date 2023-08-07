@@ -1,5 +1,6 @@
 package com.istlab.datagovernanceplatform.service;
 
+import com.istlab.datagovernanceplatform.pojo.domain.SelectList;
 import com.istlab.datagovernanceplatform.pojo.po.TableMetadataPO;
 import com.istlab.datagovernanceplatform.pojo.dto.DataSourceInfoDTO;
 import com.istlab.datagovernanceplatform.pojo.vo.DataSourceManageVO;
@@ -17,4 +18,5 @@ public interface DataSourceService {
     List<DatasourceListVO> getDatasourceList();
     TableMetadataPO getTableMetadataById(String id);
     Result<String> extractMetadata(String id, String topicArea) throws Exception;
+    List<SelectList> getSelectDatasourceList();
 }
