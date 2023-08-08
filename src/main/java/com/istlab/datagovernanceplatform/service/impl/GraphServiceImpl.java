@@ -4,6 +4,7 @@ import com.istlab.datagovernanceplatform.pojo.domain.ColumnMetadata;
 import com.istlab.datagovernanceplatform.pojo.domain.GraphLine;
 import com.istlab.datagovernanceplatform.pojo.domain.GraphNode;
 import com.istlab.datagovernanceplatform.pojo.domain.SelectList;
+import com.istlab.datagovernanceplatform.pojo.dto.RangeValueDTO;
 import com.istlab.datagovernanceplatform.pojo.dto.TextRangeDTO;
 import com.istlab.datagovernanceplatform.pojo.po.DataSourceInfoPO;
 import com.istlab.datagovernanceplatform.pojo.po.GraphJsonDataPO;
@@ -21,7 +22,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -119,11 +122,11 @@ public class GraphServiceImpl implements GraphService {
         try {
             statement = connection.createStatement();
 
-            String query = "SELECT " + column + " FROM " + table;
+            String query = "SELECT " + column + " FROM " + table + " LIMIT 25";
+            log.info(query);
             resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
                 String res = resultSet.getString(column);
-                System.out.println("res: " + res);
                 SelectList selectList = new SelectList(res, res);
                 rangeList.add(selectList);
             }
@@ -143,5 +146,48 @@ public class GraphServiceImpl implements GraphService {
         return rangeList;
     }
 
+    @Override
+    public List<Map<String, Object>> getRangeValue(RangeValueDTO rangeValueDTO) {
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        String id = rangeValueDTO.getId();
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String table = rangeValueDTO.getTable();
+        String column = rangeValueDTO.getColumn();
+        List<String> attr = rangeValueDTO.getAttr();
+        DataSourceInfoPO dataSourceInfoPO = dataSourceInfoRepo.findById(id).orElseThrow(() -> new RuntimeException("DataSourceInfoPO不存在"));
+        Connection connection =  DataSourceServiceImpl.postGreSQLConnection(dataSourceInfoPO.getHost(), dataSourceInfoPO.getPort(), dataSourceInfoPO.getDatabase(),
+                dataSourceInfoPO.getUser(), dataSourceInfoPO.getPassword());
+        try {
+            statement = connection.createStatement();
+            String query = "SELECT * FROM " + table + " WHERE " + column + " IN (" +
+                    String.join(",", attr.stream().map(d -> "'" + d + "'").toArray(String[]::new)) + ");";
+            log.info(query);
+            resultSet = statement.executeQuery(query);
+
+            while (resultSet.next()) {
+                Map<String, Object> row = new HashMap<>();
+                for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                    String columnName = resultSet.getMetaData().getColumnName(i);
+                    Object value = resultSet.getObject(i);
+                    row.put(columnName, value);
+                }
+                resultList.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            // 6. 关闭资源
+            try {
+                if (resultSet != null) resultSet.close();
+                if (statement != null) statement.close();
+                if (connection != null) connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return resultList;
+    }
 
 }
