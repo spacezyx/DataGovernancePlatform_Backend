@@ -31,7 +31,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     private TableMetadataRepo tableMetadataRepo;
 
     // 返回postgresql的连接
-    private Connection postGreSQLConnection(String host, Integer port, String database, String User, String Password) {
+    public static Connection postGreSQLConnection(String host, Integer port, String database, String User, String Password) {
         Connection connection;
         String URL = "jdbc:postgresql://" + host + ":" + port + "/";
         try {
