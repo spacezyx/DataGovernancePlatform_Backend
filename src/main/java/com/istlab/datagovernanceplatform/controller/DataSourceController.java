@@ -61,17 +61,13 @@ public class DataSourceController {
         return dataSourceService.getSelectDatasourceList();
     }
 
-    @PostMapping(value = "/datasource/extractMetadata/{id}/{topicArea}")
-    public Result<String> extractMetadata(@PathVariable String id, @PathVariable String topicArea) throws Exception {
-        return dataSourceService.extractMetadata(id, topicArea);
+    @PostMapping(value = "/datasource/extractMetadata/{id}")
+    public Result<String> extractMetadata(@PathVariable String id) throws Exception {
+        return dataSourceService.extractMetadata(id);
     }
 
     @PostMapping(value = "/datasource/getMetadata/{id}")
     public TableMetadataPO getMetadata(@PathVariable String id) throws Exception {
         return dataSourceService.getTableMetadataById(id);
     }
-
-
-
-
 }

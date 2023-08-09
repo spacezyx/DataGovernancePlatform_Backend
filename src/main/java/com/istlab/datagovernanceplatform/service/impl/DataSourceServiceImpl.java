@@ -155,7 +155,7 @@ public class DataSourceServiceImpl implements DataSourceService {
 
     // postgresql元数据抽取
     @Override
-    public Result<String> extractMetadata(String id, String topicArea) throws Exception {
+    public Result<String> extractMetadata(String id) throws Exception {
         // 每次抽取都重新更新这个datasource的元数据信息
         DataSourceInfoPO dataSourceInfoPO = dataSourceInfoRepo.findById(id).orElseThrow(() -> new RuntimeException("DataSourceInfoPO不存在"));
 
@@ -168,7 +168,7 @@ public class DataSourceServiceImpl implements DataSourceService {
             try {
                 TableMetadataPO tableMetadataPO = getTableMetadata(connection, tableName);
                 tableMetadataPO.setDataSourceId(id);
-                tableMetadataPO.setTopicArea(topicArea);
+//                tableMetadataPO.setTopicArea(topicArea);
                 tableMetadataPOS.add(tableMetadataPO);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -182,6 +182,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         dataSourceInfoPO.setExtractFlag(true);
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         dataSourceInfoPO.setLastExtractTime(timestamp);
+        dataSourceInfoRepo.save(dataSourceInfoPO);
         tableMetadataRepo.deleteAllByDataSourceId(id);
         tableMetadataRepo.saveAll(tableMetadataPOS);
         return ResultUtil.success("数据源: " + dataSourceInfoPO.getName() + " 元数据抽取成功,成功导入" + tableNames.size() + "个表" );
