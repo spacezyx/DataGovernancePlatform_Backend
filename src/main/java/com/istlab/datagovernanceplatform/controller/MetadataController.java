@@ -1,9 +1,11 @@
 package com.istlab.datagovernanceplatform.controller;
 
 import com.istlab.datagovernanceplatform.pojo.domain.SelectList;
+import com.istlab.datagovernanceplatform.pojo.dto.FuseTestDTO;
 import com.istlab.datagovernanceplatform.pojo.dto.RangeValueDTO;
 import com.istlab.datagovernanceplatform.pojo.dto.TextRangeDTO;
 import com.istlab.datagovernanceplatform.pojo.po.GraphJsonDataPO;
+import com.istlab.datagovernanceplatform.pojo.vo.SimilarityCheckVO;
 import com.istlab.datagovernanceplatform.service.GraphService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -32,5 +34,10 @@ public class MetadataController {
         return graphService.getRangeValue(rangeValueDTO);
     }
 
-
+    @PostMapping(value = "/fuse/fuseTest")
+    public List<SimilarityCheckVO> fuseTest(@RequestBody FuseTestDTO fuseTestDTO) {
+        String id = fuseTestDTO.getId();
+        String topicId = fuseTestDTO.getTopicAreaId();
+        return graphService.metadataFuse(id, topicId);
+    }
 }

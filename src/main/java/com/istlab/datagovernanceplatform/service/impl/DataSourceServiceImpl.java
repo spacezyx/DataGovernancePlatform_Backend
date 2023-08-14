@@ -188,6 +188,7 @@ public class DataSourceServiceImpl implements DataSourceService {
         return ResultUtil.success("数据源: " + dataSourceInfoPO.getName() + " 元数据抽取成功,成功导入" + tableNames.size() + "个表" );
     }
 
+
     // postgresql获取所有表名
     private List<String> getTableNames(Connection connection) {
         List<String> res = new ArrayList<>();

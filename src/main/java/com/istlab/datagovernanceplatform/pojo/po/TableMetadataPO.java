@@ -23,5 +23,5 @@ public class TableMetadataPO {
     private List<String> indexes;
     private String tableComment;
     private String dataSourceId;
-    private String topicArea;
+    private TopicAreaPO topicArea;
 }

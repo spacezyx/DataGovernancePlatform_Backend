@@ -1,17 +1,20 @@
 package com.istlab.datagovernanceplatform.service.impl;
 
-import com.istlab.datagovernanceplatform.pojo.domain.ColumnMetadata;
-import com.istlab.datagovernanceplatform.pojo.domain.GraphLine;
-import com.istlab.datagovernanceplatform.pojo.domain.GraphNode;
-import com.istlab.datagovernanceplatform.pojo.domain.SelectList;
+import com.istlab.datagovernanceplatform.pojo.domain.*;
 import com.istlab.datagovernanceplatform.pojo.dto.RangeValueDTO;
 import com.istlab.datagovernanceplatform.pojo.dto.TextRangeDTO;
 import com.istlab.datagovernanceplatform.pojo.po.DataSourceInfoPO;
 import com.istlab.datagovernanceplatform.pojo.po.GraphJsonDataPO;
 import com.istlab.datagovernanceplatform.pojo.po.TableMetadataPO;
+import com.istlab.datagovernanceplatform.pojo.po.TopicAreaPO;
+import com.istlab.datagovernanceplatform.pojo.vo.SimilarityCheckVO;
 import com.istlab.datagovernanceplatform.repository.DataSourceInfoRepo;
 import com.istlab.datagovernanceplatform.repository.TableMetadataRepo;
+import com.istlab.datagovernanceplatform.repository.TopicAreaRepo;
 import com.istlab.datagovernanceplatform.service.GraphService;
+import com.istlab.datagovernanceplatform.utils.Result;
+import com.istlab.datagovernanceplatform.utils.ResultUtil;
+import com.istlab.datagovernanceplatform.utils.SimHashUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.json.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +24,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,6 +36,9 @@ public class GraphServiceImpl implements GraphService {
 
     @Autowired
     private TableMetadataRepo tableMetadataRepo;
+
+    @Autowired
+    private TopicAreaRepo topicAreaRepo;
 
     @Override
     public GraphJsonDataPO getPostgresGraphByDatasourceId(String id) {
@@ -189,5 +193,93 @@ public class GraphServiceImpl implements GraphService {
 
         return resultList;
     }
+
+    // 元数据融合
+    @Override
+    public List<SimilarityCheckVO> metadataFuse(String id, String topicAreaId) {
+        // 获取数据源信息
+        DataSourceInfoPO dataSourceInfoPO = dataSourceInfoRepo.findById(id).orElseThrow(() -> new RuntimeException("DataSource不存在"));
+        // 获取数据源下的所有表结构信息
+        List<TableMetadataPO> tableMetadataPOS = tableMetadataRepo.findAllByDataSourceId(id);
+        // 判断是否存在已融合的数据源
+        Boolean firstFuse = tableMetadataRepo.existsByTopicArea(topicAreaId);
+
+        TopicAreaPO topicAreaPO = topicAreaRepo.findById(topicAreaId).orElseThrow(() -> new RuntimeException("主题域不存在"));
+
+       // 如果是第一次融合，不需要进行实体相似度计算
+        List<SimilarityCheckVO> checkVOS = new ArrayList<>();
+        if(firstFuse) {
+            for(TableMetadataPO tableMetadataPO : tableMetadataPOS) {
+                SimilarityCheckVO similarityCheckVO = new SimilarityCheckVO();
+                similarityCheckVO.setName(tableMetadataPO.getTableName());
+                similarityCheckVO.setNewFlag(true);
+                similarityCheckVO.setFuseFlag(false);
+                checkVOS.add(similarityCheckVO);
+            }
+        } else {
+            // TODO: 换好一点的相似度算法
+            // 计算并生成给用户确认的返回列表
+            String tmpPrefer = "";
+            Double tmpSimilar = 0.0;
+            for(TableMetadataPO tableMetadataPO : tableMetadataPOS) {
+                SimHashUtil mySimHash_1 = new SimHashUtil(tableMetadataPO.getTableName(), 64);
+                SimilarityCheckVO similarityCheckVO = new SimilarityCheckVO();
+                for(OntologyInfo ontologyInfo : topicAreaPO.getOntologyInfoList()) {
+                    SimHashUtil mySimHash_2 = new SimHashUtil(ontologyInfo.getName(), 64);
+                    Double similar = mySimHash_1.getSimilar(mySimHash_2);
+                    if(similar > 0.5 && similar > tmpSimilar){
+                        tmpPrefer = ontologyInfo.getName();
+                        tmpSimilar = similar;
+                    }
+                }
+                if(Objects.equals(tmpPrefer, "")) {
+                    similarityCheckVO.setName(tableMetadataPO.getTableName());
+                    similarityCheckVO.setNewFlag(true);
+                    similarityCheckVO.setFuseFlag(false);
+                } else {
+                    similarityCheckVO.setName(tableMetadataPO.getTableName());
+                    similarityCheckVO.setNewFlag(false);
+                    similarityCheckVO.setReferedName(tmpPrefer);
+                    similarityCheckVO.setSimilarity(tmpSimilar);
+                    similarityCheckVO.setFuseFlag(false);
+                }
+                checkVOS.add(similarityCheckVO);
+            }
+        }
+        return checkVOS;
+    }
+
+    @Override
+    public Result<String> comfirmFuse(String id, String topicAreaId, List<SimilarityCheckVO> checkVOS) {
+        // 根据用户选择进行融合
+        // 获取数据源信息
+        DataSourceInfoPO dataSourceInfoPO = dataSourceInfoRepo.findById(id).orElseThrow(() -> new RuntimeException("DataSource不存在"));
+        // 获取数据源下的所有表结构信息
+        List<TableMetadataPO> tableMetadataPOS = tableMetadataRepo.findAllByDataSourceId(id);
+        // 判断是否存在已融合的数据源
+        Boolean firstFuse = tableMetadataRepo.existsByTopicArea(topicAreaId);
+        // 获取主题域信息
+        TopicAreaPO topicAreaPO = topicAreaRepo.findById(topicAreaId).orElseThrow(() -> new RuntimeException("TopicArea不存在"));
+        // 将数据源下的所有表结构信息插入到主题域下
+        for(TableMetadataPO tableMetadataPO : tableMetadataPOS) {
+            tableMetadataPO.setTopicArea(topicAreaPO);
+            tableMetadataRepo.save(tableMetadataPO);
+        }
+        // 将数据源的融合标志设置为true
+        dataSourceInfoPO.setFuseFlag(true);
+        dataSourceInfoRepo.save(dataSourceInfoPO);
+        // 将主题域的融合标志设置为true
+        topicAreaPO.setFuseFlag(true);
+        topicAreaRepo.save(topicAreaPO);
+        for(SimilarityCheckVO checkVO : checkVOS) {
+            // 如果是新属性，直接插入
+            if(checkVO.getNewFlag()) {
+                // TODO: 写到这里了
+            }
+        }
+
+        return ResultUtil.success("融合成功");
+    }
+
 
 }

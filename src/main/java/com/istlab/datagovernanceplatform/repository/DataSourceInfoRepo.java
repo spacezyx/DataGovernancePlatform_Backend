@@ -10,5 +10,5 @@ public interface DataSourceInfoRepo extends MongoRepository<DataSourceInfoPO, St
     boolean existsByName(String name);
     boolean existsByHostAndPortAndDatabase(String host, Integer port, String database);
     DataSourceInfoPO getDataSourceInfoPOByHostAndPortAndDatabase(String host, Integer port, String database);
-
+    boolean existsByFuseFlag(Boolean fuseFlag);
 }

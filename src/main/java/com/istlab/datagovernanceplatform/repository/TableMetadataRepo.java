@@ -11,4 +11,5 @@ public interface TableMetadataRepo extends MongoRepository<TableMetadataPO, Stri
     void deleteAllByDataSourceId(String id);
     List<TableMetadataPO> findAllByDataSourceId(String id);
     TableMetadataPO findTableMetadataPOByTableName(String name);
+    boolean existsByTopicArea(String id);
 }
