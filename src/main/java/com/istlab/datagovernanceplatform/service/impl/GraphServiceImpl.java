@@ -194,7 +194,8 @@ public class GraphServiceImpl implements GraphService {
         return resultList;
     }
 
-    // 元数据融合
+    // 元数据融合尝试
+    // 这个函数只进行相似度计算，生成一个推荐的融合方案，真正的融合在comfirmFuse里
     @Override
     public List<SimilarityCheckVO> metadataFuse(String id, String topicAreaId) {
         // 获取数据源信息
@@ -202,13 +203,12 @@ public class GraphServiceImpl implements GraphService {
         // 获取数据源下的所有表结构信息
         List<TableMetadataPO> tableMetadataPOS = tableMetadataRepo.findAllByDataSourceId(id);
         // 判断是否存在已融合的数据源
-        Boolean firstFuse = tableMetadataRepo.existsByTopicArea(topicAreaId);
-
         TopicAreaPO topicAreaPO = topicAreaRepo.findById(topicAreaId).orElseThrow(() -> new RuntimeException("主题域不存在"));
+        Boolean firstFuse = topicAreaPO.getFuseFlag();
 
        // 如果是第一次融合，不需要进行实体相似度计算
         List<SimilarityCheckVO> checkVOS = new ArrayList<>();
-        if(firstFuse) {
+        if(!firstFuse) {
             for(TableMetadataPO tableMetadataPO : tableMetadataPOS) {
                 SimilarityCheckVO similarityCheckVO = new SimilarityCheckVO();
                 similarityCheckVO.setName(tableMetadataPO.getTableName());
@@ -249,6 +249,7 @@ public class GraphServiceImpl implements GraphService {
         return checkVOS;
     }
 
+    // 完成元数据融合
     @Override
     public Result<String> comfirmFuse(String id, String topicAreaId, List<SimilarityCheckVO> checkVOS) {
         // 根据用户选择进行融合

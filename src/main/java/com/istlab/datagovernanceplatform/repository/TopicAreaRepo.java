@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TopicAreaRepo  extends MongoRepository<TopicAreaPO, String> {
-
+    Boolean existsByName(String name);
 }
