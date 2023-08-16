@@ -3,20 +3,17 @@ package com.istlab.datagovernanceplatform.service.impl;
 import com.istlab.datagovernanceplatform.pojo.domain.*;
 import com.istlab.datagovernanceplatform.pojo.dto.RangeValueDTO;
 import com.istlab.datagovernanceplatform.pojo.dto.TextRangeDTO;
-import com.istlab.datagovernanceplatform.pojo.po.DataSourceInfoPO;
-import com.istlab.datagovernanceplatform.pojo.po.GraphJsonDataPO;
-import com.istlab.datagovernanceplatform.pojo.po.TableMetadataPO;
-import com.istlab.datagovernanceplatform.pojo.po.TopicAreaPO;
+import com.istlab.datagovernanceplatform.pojo.po.*;
 import com.istlab.datagovernanceplatform.pojo.vo.SimilarityCheckVO;
 import com.istlab.datagovernanceplatform.repository.DataSourceInfoRepo;
 import com.istlab.datagovernanceplatform.repository.TableMetadataRepo;
 import com.istlab.datagovernanceplatform.repository.TopicAreaRepo;
+import com.istlab.datagovernanceplatform.repository.TmpRepo;
 import com.istlab.datagovernanceplatform.service.GraphService;
 import com.istlab.datagovernanceplatform.utils.Result;
 import com.istlab.datagovernanceplatform.utils.ResultUtil;
 import com.istlab.datagovernanceplatform.utils.SimHashUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.json.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +22,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,6 +35,9 @@ public class GraphServiceImpl implements GraphService {
 
     @Autowired
     private TopicAreaRepo topicAreaRepo;
+
+    @Autowired
+    private TmpRepo tmpRepo;
 
     @Override
     public GraphJsonDataPO getPostgresGraphByDatasourceId(String id) {
@@ -95,7 +94,7 @@ public class GraphServiceImpl implements GraphService {
                 // 外键关联
                 if(columnMetadata.isForeignKey()) {
                     GraphLine fkLine = new GraphLine();
-                    TableMetadataPO po = tableMetadataRepo.findTableMetadataPOByTableName(columnMetadata.getReferencedTableName());
+                    TableMetadataPO po = tableMetadataRepo.findTableMetadataPOByTableNameAndDataSourceId(columnMetadata.getReferencedTableName(), id);
                     String fkEndId = po.getId() + columnMetadata.getReferencedColumnName();
                     fkLine.setText("外键约束");
                     fkLine.setFrom(columnId);
@@ -108,6 +107,11 @@ public class GraphServiceImpl implements GraphService {
         }
         graphJsonDataPO.setLines(lines);
         graphJsonDataPO.setNodes(nodes);
+
+        TmpPO tmpPO = new TmpPO();
+        tmpPO.setGraphJsonData(graphJsonDataPO);
+        tmpRepo.save(tmpPO);
+
         return graphJsonDataPO;
     }
 
