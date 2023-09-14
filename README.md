@@ -11,7 +11,7 @@
 使用 Spring Boot 框架，提供快速搭建和开发后端服务。
 定义 RESTful API，用于前端界面与后端逻辑的交互。
 数据库存储使用 MongoDB，提供持久化存储。
-项目包名为 com.istlab.datagovernanceplatform，按照包名约定划分模块。
+项目包名为 com.istlab.datagovernanceplatform。
 
 ## MongoDB配置
 在 application.properties 文件中配置 MongoDB 连接信息：
